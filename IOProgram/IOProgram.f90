@@ -1,7 +1,6 @@
 program IOProgram
     !Hyper parameter the dim of the matrix
     integer,parameter :: ndim = 5
-
     real*8 :: matrix(ndim,ndim) = 0
     integer :: operator
 
@@ -53,14 +52,16 @@ subroutine ReadMatrixFromScreen(matrix)
     real*8,intent(out) :: matrix(5,5)
     print *,"Please enter 25 numbers to form a 5*5 matrix"
     read *,matrix
+	matrix = transpose(matrix)
     print *,"Read matrix complete"
 end subroutine
  
 subroutine ReadMatrixFromFile(matrix)
     real*8,intent(out) :: matrix(5,5)
-
+	
     open(file="./data.txt",unit=10)
     read (10,*)matrix
+	matrix = transpose(matrix)
     close(unit=10)
 
     print *,"Read matrix complete"
@@ -68,7 +69,12 @@ end subroutine
 
 subroutine SaveMatrixToFile(matrix)
     real*8,intent(in) :: matrix(5,5)
-    open(file="data.txt",unit=10)
-    write(unit=10)matrix
+
+    open(file="./data.txt",unit=10)
+	do i = 1,5
+		write(10,"(5f8.3)") matrix(i,:)
+	end do
     close(unit=10)
+	
+	print *,"Save matrix complete"
 end subroutine
