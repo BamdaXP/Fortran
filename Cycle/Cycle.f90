@@ -10,8 +10,8 @@ program CycleProgram
 
     print "(a,i8)","n:",n
     print "(a,i8)","m:",m
-    print "(a,f)","P:",P
-    print "(a,f)","C:",C
+    print "(a,f16.3)","P:",P
+    print "(a,f16.3)","C:",C
 
 end program CycleProgram
 
@@ -27,9 +27,9 @@ subroutine Calculate(n,m, P,C)
     do i=m+1,n
         C = C*i
     end do
-	do i=1,n-m
-		C = C/i
-	end do
+    do i=1,n-m
+        C = C/i
+    end do
     P = C
     do i=1,m
         P = P*i

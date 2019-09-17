@@ -3,8 +3,8 @@ program Jacobi
     integer :: iteration
 	do i = 1,3
 		call JacobiCalculate(x_hat,error,iteration,i)
-		print "(a,i)","Root id",i
-		print "(a,f8.4,/,a,f,/,a,i4)","Root:",x_hat,"Error:",error,"Iteration:",iteration
+		print "(a,i8)","Root id",i
+		print "(a,f8.4,/,a,f16.8,/,a,i4)","Root:",x_hat,"Error:",error,"Iteration:",iteration
 	end do
 end program Jacobi
 
@@ -41,7 +41,7 @@ subroutine JacobiCalculate(x_hat,error,iteration,root_id)
     real*8 :: last_x
 
     iteration = 0
-	x_hat =0 
+	x_hat = 0 
 	!Set a large number
 	last_x = 10000000
 
@@ -70,7 +70,7 @@ subroutine JacobiCalculate(x_hat,error,iteration,root_id)
 				!Set the x a random number in (-2,0)
 				if ( iteration == 0 ) then
 					call random_number(x_hat)
-					x_hat = x_hat*-2
+					x_hat = x_hat*(-2)
 				end if
 		end select
 
