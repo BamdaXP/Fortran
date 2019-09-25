@@ -31,6 +31,16 @@ program Equation
             print *,"Processing Doolittle Deccompression method to solve the euqtions..."
             call Doolittle(A,b)
         case (3)
+            print *,"Loading matrix and vector from the file..."
+            call LoadMatrix(A,b,3)
+            print *,"Processing Seidel Iteration method to solve the euqtions..."
+            call Seidel(A,b,dble(0.00001))
+		case (4)
+            print *,"Loading matrix and vector from the file..."
+            call LoadMatrix(A,b,4)
+            print *,"Processing Overrelaxation Iteration method to solve the euqtions..."
+            call Overrelaxation(A,b,dble(0.4),dble(0.00001))
+		case (5)
             print *,"Exiting..."
             exit
         case default
@@ -107,6 +117,7 @@ subroutine GaussElimination(A, b)
         end do
     end do
 
+	!Output
     print *,"A matrix after transformation and the final x result:"
     call PrintAll(A_temp,b)
     print *,""
@@ -152,20 +163,97 @@ subroutine Doolittle(A, b)
     !Solve the final x vector
     x = y
     call SolveUpper(Lt,x)
-
+	
+	!Output
     print*,"The final result of x:"
     call Printb(x)
 
     print *,""
 end subroutine Doolittle
 
+!Seidel Iteration method
+subroutine Seidel(A,b,requested_error)
+	real*8,intent(in) :: A(9,9),b(9,1),requested_error
+	real*8 :: x(9,1),x_last(9,1),sum,error
+	integer :: iteration
+	!Initialize
+	x=0
+	x_last=x
+	error=100000
+	sum=0
+	iteration=0
+	
+	print *,requested_error
+	do while(error>requested_error)
+		x_last=x
+		do i=1,9
+			sum=0
+			do j=1,9
+				if (j==i)then
+					cycle
+				end if
+				sum=sum+A(i,j)*x(j,1)
+			end do
+			x(i,1)=dble(-1)/A(i,i)*(sum-b(i,1))
+		end do
+		error=0
+		do i=1,9
+			error=error+abs(x(i,1)-x_last(i,1))
+		end do
+		iteration=iteration+1
+	end do
 
-subroutine Seidel(A,b)
-implicit none
-real*8,intent(in) :: A(9,9),b(9,1)
-
-
+	
+	!Output
+	print *,"The final result of x:"
+	call Printb(x)
+	print "(a,i4)","Used iteration:",iteration
+	print "(a,es10.3)","Final error:",error
 end subroutine Seidel
+
+
+!Overrelaxation method implementation
+subroutine Overrelaxation(A, b,w ,requested_error)
+	real*8,intent(in) :: A(9,9),b(9,1),w,requested_error
+	real*8 :: x(9,1),x_last(9,1),sum,error
+	integer :: iteration
+	!Initialize
+	x=0
+	x_last=x
+	error=100000
+	sum=0
+	iteration=0
+
+	do while(error>requested_error)
+		x_last=x
+		
+		do i=1,9
+			sum=0
+			do j=1,9
+				if (j==i)then
+					cycle
+				end if
+				sum=sum+A(i,j)*x(j,1)
+			end do
+			x(i,1) = (dble(1)-w)*x(dble(i),1)-w/A(i,i)*(sum-b(i,1))
+		end do
+
+
+		error=0
+		do i=1,9
+			error=error+abs(x(i,1)-x_last(i,1))
+		end do
+		iteration=iteration+1
+	end do
+
+	!Output
+	print *,"The final result of x:"
+	call Printb(x)
+	print "(a,i4)","Used iteration:",iteration
+	print "(a,es10.3)","Final error:",error
+
+end subroutine
+
 
 !The subroutine to solve the decompressed bottom and upper matrix
 subroutine SolveBottom(A, b)
