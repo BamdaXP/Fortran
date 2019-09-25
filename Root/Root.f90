@@ -1,8 +1,15 @@
 program Root
     real*8 :: x_hat,error
 	integer :: iteration
+
+	!Clock to measure
+	!Because using int64 so the unit is us(1e-6s)
+	integer*8 :: start_time,end_time
+
 	!Procedures for different methods 
 	do j = 1,4
+		!Start the system timer
+		call system_clock(start_time)
 		!Loop for different roots
 		print *,"================================="
 		do i = 1,3
@@ -32,8 +39,13 @@ program Root
 				case default
 					print "(a,/)","Unknown procedure id!!!"
 			end select
+
+			!Stop the system timer
+			call system_clock(end_time)
+
 			print "(a,i8)","Root id",i
-			print "(a,f8.4,/,a,f16.12,/,a,i4,/)","Root:",x_hat,"Error:",error,"Iteration:",iteration
+			print "(a,f8.4,/,a,es16.3,/,a,i4,/a,es16.3)","Root:",x_hat,"Error:",error,"Iteration:",iteration
+			print "(a,i16,a,/)","Used time:",(end_time-start_time),"us"
 		end do
 	end do
 	
@@ -138,34 +150,7 @@ subroutine AccCalculate(root_id, x_hat,error,iteration)
 	real*8,intent(out) :: x_hat,error
 	integer,intent(out) :: iteration
 
-	!Initialize the x with a random number in different regions
-	select case(root_id)
-			case (1)
-				!Set the x a random number in (0,1)
-				call random_number(x_hat)
-			case (2)
-				!Set the x a random number in (1,2)
-				call random_number(x_hat)
-				x_hat = x_hat+1
-			case (3)
-				!Set the x a random number in (-2,-1)
-				call random_number(x_hat)
-				x_hat = x_hat*(-1)-1
-	end select
-	iteration = 0
-	!Set a large number
-	error = 10000000
-
-end subroutine AccCalculate
-
-!Aitken Calculation
-subroutine AitkenCalculate(root_id, x_hat,error,iteration)
-	implicit none
-	integer,intent(in) :: root_id
-	real*8,intent(out) :: x_hat,error
-	integer,intent(out) :: iteration
-
-	real*8 :: f,f_derivative,g,g1,g2,g1_derivative,g2_derivative,l
+	real*8 :: g,g1,g2,g1_derivative,g2_derivative,l
 	real*8 :: last_x
 
 	!Initialize the x with a random number in different regions
@@ -187,12 +172,10 @@ subroutine AitkenCalculate(root_id, x_hat,error,iteration)
 				l = g2_derivative(x_hat)
 	end select
 
-	
 	iteration = 0
 	!Set a large number
 	error = 10000000
 
-	!Main loop 
 	do while(abs(error)>1d-8 .and. iteration < 100)
 		last_x = x_hat
 		select case(root_id)
@@ -203,6 +186,66 @@ subroutine AitkenCalculate(root_id, x_hat,error,iteration)
 		end select
 		x_hat = (1-l)**(-1)*(g-l*x_hat)
 		error = abs(last_x - x_hat)
+		iteration = iteration + 1
+	end do
+end subroutine AccCalculate
+
+!Aitken Calculation
+subroutine AitkenCalculate(root_id, x_hat,error,iteration)
+	implicit none
+	integer,intent(in) :: root_id
+	real*8,intent(out) :: x_hat,error
+	integer,intent(out) :: iteration
+
+	real*8 :: g,g1,g2,g1_derivative,g2_derivative,l
+	real*8 :: last_x,last_x_buffer,x_2
+
+	!Initialize the x with a random number in different regions
+	!Initialize the factor l
+	select case(root_id)
+			case (1)
+				!Set the x a random number in (0,1)
+				call random_number(x_hat)
+				l = g1_derivative(x_hat)
+			case (2)
+				!Set the x a random number in (1,2)
+				call random_number(x_hat)
+				x_hat = x_hat+1
+				l = g2_derivative(x_hat)
+			case (3)
+				!Set the x a random number in (-2,-1)
+				call random_number(x_hat)
+				x_hat = x_hat*(-1)-1
+				l = g2_derivative(x_hat)
+	end select
+
+	select case(root_id)
+		case(1)
+			last_x = g1(x_hat)
+			x_hat = g1(last_x)
+		case default
+			last_x = g2(x_hat)
+			x_hat = g2(last_x)
+	end select
+	iteration = 0
+	!Set a large number
+	error = 10000000
+
+
+
+	!Main loop 
+	do while(abs(error)>1d-8 .and. iteration < 100)
+
+		select case(root_id)
+		case(1)
+			x_2 = g1(x_hat)
+		case default
+			x_2 = g2(x_hat)
+		end select
+		last_x_buffer = x_hat
+		x_hat = x_2 - (x_2-x_hat)**2/(x_2-2*x_hat+last_x)
+		error = abs(last_x - x_hat)
+		last_x = last_x_buffer
 		iteration = iteration + 1
 	end do
 
