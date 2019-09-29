@@ -5,8 +5,8 @@ program Equation
 
     integer :: operation
     operation = 0
-    do while(.true.)
 
+    do while(.true.)
         print *,"****************************"
         print *,"Enter the operation you would like to choose to solve the equations:"
         print *,"1.Gauss Elimination"
@@ -34,11 +34,13 @@ program Equation
             print *,"Loading matrix and vector from the file..."
             call LoadMatrix(A,b,3)
             print *,"Processing Seidel Iteration method to solve the euqtions..."
+            !Set the requested error 0.00001
             call Seidel(A,b,dble(0.00001))
 		case (4)
             print *,"Loading matrix and vector from the file..."
             call LoadMatrix(A,b,4)
             print *,"Processing Overrelaxation Iteration method to solve the euqtions..."
+            !Set the w 0.4 and the requested error 0.00001
             call Overrelaxation(A,b,dble(0.4),dble(0.00001))
 		case (5)
             print *,"Exiting..."
@@ -47,6 +49,7 @@ program Equation
             print *,"Wrong operation number!"
             cycle
         end select
+
     end do  
     
 end program Equation
@@ -79,8 +82,7 @@ end subroutine LoadMatrix
 
 !Gauss elimination implemention
 subroutine GaussElimination(A, b)
-    real*8,intent(in) :: A(9,9)
-    real*8,intent(out) :: b(9,1)
+    real*8,intent(in) :: A(9,9),b(9,1)
     real*8 :: factor,A_temp(9,9),b_temp(9,1)
 
     !Creating copies of parameters in case of reference affecting
@@ -89,11 +91,11 @@ subroutine GaussElimination(A, b)
 
     do i=1,9
         !Cast the diag elements to unit 1
-        do j=i+1,9
-            A_temp(i,j) = A_temp(i,j)/A_temp(i,i)
+        factor = A_temp(i,i)
+        do j=1,9
+            A_temp(i,j) = A_temp(i,j)/factor
         end do
-        A_temp(i,i)=1
-        b_temp(i,1) = b_temp(i,1)/A_temp(i,i)
+        b_temp(i,1) = b_temp(i,1)/factor
 
         !Eliminate bottom triangle
         do j = i+1,9
@@ -101,7 +103,7 @@ subroutine GaussElimination(A, b)
             do k = i,9
                 A_temp(j,k) = A_temp(j,k) - factor*A_temp(i,k)
             end do
-            b_temp(j,1) = b_temp(j,1) - factor*A_temp(i,1)
+            b_temp(j,1) = b_temp(j,1) - factor*b_temp(i,1)
         end do
 
     end do
@@ -113,13 +115,13 @@ subroutine GaussElimination(A, b)
             do k = 10-i,9
                 A_temp(10-j,k) = A_temp(10-j,k) - factor*A_temp(10-i,k)
             end do
-            b_temp(10-j,1) = b_temp(10-j,1) - factor*A_temp(10-i,1)
+            b_temp(10-j,1) = b_temp(10-j,1) - factor*b_temp(10-i,1)
         end do
     end do
 
 	!Output
     print *,"A matrix after transformation and the final x result:"
-    call PrintAll(A_temp,b)
+    call PrintAll(A_temp,b_temp)
     print *,""
 end subroutine GaussElimination
 
@@ -130,25 +132,27 @@ subroutine Doolittle(A, b)
     real*8 :: L(9,9),Lt(9,9),sum,x(9,1),y(9,1)
     !Initializing 
     L = 0
+    Lt = 0
     sum = 0
+    x = 0
+    y = 0
 
-    do i=1,9
-        do j=1,i
-            if (i==j) then
-                sum = 0
-                do k=1,j-1
-                    sum = sum + L(j,k)**dble(2.0)
-                end do
-                L(j,j) = (A(j,j) - sum)**dble(0.5)
-            else
-                sum = 0
-                do k=1,j-1
-                    sum = sum + L(j,k)*L(i,k)
-                end do
-                L(i,j) = (A(i,j)-sum)/L(j,j)
-            end if
+    do j=1,9
+        sum = 0
+        do k=1,j-1
+            sum = sum + L(j,k)**dble(2.0)
         end do
+        L(j,j) = (A(j,j) - sum)**dble(0.5)    
+        do i=j+1,9 
+            sum = 0
+            do k=1,j-1
+                sum = sum + L(i,k)*L(j,k)
+            end do
+            L(i,j) = (A(i,j)-sum)/L(j,j)
+        end do  
     end do
+    
+    
 
     Lt = transpose(L)
     print *,"Decompressed L matrix, Lt is its transposed matrix:"
@@ -158,7 +162,7 @@ subroutine Doolittle(A, b)
     y = b
     call SolveBottom(L,y)
     print*,"The y vector is:"
-    call Printb(y)
+    call PrintAll(L,y)
 
     !Solve the final x vector
     x = y
@@ -166,7 +170,7 @@ subroutine Doolittle(A, b)
 	
 	!Output
     print*,"The final result of x:"
-    call Printb(x)
+    call PrintAll(Lt,x)
 
     print *,""
 end subroutine Doolittle
@@ -235,7 +239,7 @@ subroutine Overrelaxation(A, b,w ,requested_error)
 				end if
 				sum=sum+A(i,j)*x(j,1)
 			end do
-			x(i,1) = (dble(1)-w)*x(dble(i),1)-w/A(i,i)*(sum-b(i,1))
+			x(i,1) = (dble(1)-w)*x(i,1)-w/A(i,i)*(sum-b(i,1))
 		end do
 
 
@@ -258,32 +262,37 @@ end subroutine
 !The subroutine to solve the decompressed bottom and upper matrix
 subroutine SolveBottom(A, b)
     real*8,intent(inout) :: A(9,9),b(9,1)
+    real*8 :: factor
+
     do i=1,9
-        b(i,1)=b(i,1)/A(i,i)
+        factor = A(i,i)
+        b(i,1)=b(i,1)/factor
         !j is the colomn count
         do j=1,i
-            A(i,j)=A(i,j)/A(i,i)
+            A(i,j)=A(i,j)/factor
         end do
+
         !j is the row count
         do j=i+1,9
             b(j,1) = b(j,1)-b(i,1)*A(j,i)
-            A(j,i) = 0
+            A(j,:) = A(j,:)-A(i,:)*A(j,:)
         end do
     end do
 end subroutine SolveBottom
 subroutine SolveUpper(A,b)
     real*8,intent(inout)::A(9,9),b(9,1)
-
+    real*8 :: factor
     do i=1,9
-        b(10-i,1)=b(i,1)/A(10-i,10-i)
+        factor = A(10-i,10-i)
+        b(10-i,1)=b(i,1)/factor
         !j is the colomn count
         do j=1,i
-            A(10-i,10-j)=A(10-i,10-j)/A(10-i,10-i)
+            A(10-i,10-j)=A(10-i,10-j)/factor
         end do
         !j is the row count
         do j=i+1,9
             b(10-j,1) = b(10-j,1)-b(10-i,1)*A(10-j,10-i)
-            A(10-j,10-i) = 0
+            A(10-j,:) = A(10-j,:)-A(10-i,:)*A(10-j,:)
         end do
     end do
 end subroutine SolveUpper
