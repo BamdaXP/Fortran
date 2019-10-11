@@ -129,35 +129,57 @@ end subroutine GaussElimination
 !Doolittle Decompression implemention
 subroutine Doolittle(A, b)
     real*8,intent(in) :: A(9,9),b(9,1)
-    real*8 :: L(9,9),Lt(9,9),sum,x(9,1),y(9,1)
+    real*8 :: L(9,9),U(9,9),sum,x(9,1),y(9,1)
+    integer :: r=0
     !Initializing 
     L = 0
-    Lt = 0
+    U = 0
     sum = 0
     x = 0
     y = 0
 
-    do j=1,9
-        sum = 0
-        do k=1,j-1
-            sum = sum + L(j,k)**dble(2.0)
-        end do
-        L(j,j) = (A(j,j) - sum)**dble(0.5)    
-        do i=j+1,9 
-            sum = 0
-            do k=1,j-1
-                sum = sum + L(i,k)*L(j,k)
+    do k=1,9
+        do j=k,9
+            sum=0
+            do r=1,k-1
+                sum = sum+L(k,r)*U(r,j)
             end do
-            L(i,j) = (A(i,j)-sum)/L(j,j)
-        end do  
+            U(k,j)=A(k,j)-sum
+        end do
+
+        do i=k,9
+            if ( i==k ) then
+                L(i,i)=1
+                cycle
+            end if
+            sum=0
+            do r=1,k-1
+                sum = sum+L(i,r)*U(r,k)
+            end do
+            L(i,k)=(A(i,k)-sum)/U(k,k)
+        end do
     end do
-    
-    
 
-    Lt = transpose(L)
-    print *,"Decompressed L matrix, Lt is its transposed matrix:"
+    !do j=1,9
+    !    sum = 0
+    !    do k=1,j-1
+    !        sum = sum + L(j,k)**dble(2.0)
+    !    end do
+    !    L(j,j) = (A(j,j) - sum)**dble(0.5)    
+    !    do i=j+1,9 
+    !        sum = 0
+    !        do k=1,j-1
+    !           sum = sum + L(i,k)*L(j,k)
+    !        end do
+    !        L(i,j) = (A(i,j)-sum)/L(j,j)
+    !    end do  
+    !end do
+    
+    
+    print *,"Decompressed L and U matrix:"
     call PrintA(L)
-
+    call PrintA(U)
+    
     !Solve the y vector
     y = b
     call SolveBottom(L,y)
@@ -166,11 +188,10 @@ subroutine Doolittle(A, b)
 
     !Solve the final x vector
     x = y
-    call SolveUpper(Lt,x)
-	
-	!Output
-    print*,"The final result of x:"
-    call PrintAll(Lt,x)
+    call SolveUpper(U,x)
+    
+    !Output
+    call GaussElimination(A,b)
 
     print *,""
 end subroutine Doolittle
@@ -204,7 +225,7 @@ subroutine Seidel(A,b,requested_error)
 		do i=1,9
 			error=error+abs(x(i,1)-x_last(i,1))
 		end do
-		iteration=iteration+1
+	    iteration=iteration+1
 	end do
 
 	
@@ -267,32 +288,29 @@ subroutine SolveBottom(A, b)
     do i=1,9
         factor = A(i,i)
         b(i,1)=b(i,1)/factor
-        !j is the colomn count
-        do j=1,i
-            A(i,j)=A(i,j)/factor
-        end do
+        A(i,:)=A(i,:)/factor
 
         !j is the row count
         do j=i+1,9
-            b(j,1) = b(j,1)-b(i,1)*A(j,i)
-            A(j,:) = A(j,:)-A(i,:)*A(j,:)
+            factor = A(j,i)
+            b(j,1) = b(j,1)-b(i,1)*factor
+            A(j,:) = A(j,:)-A(i,:)*factor
         end do
     end do
 end subroutine SolveBottom
 subroutine SolveUpper(A,b)
     real*8,intent(inout)::A(9,9),b(9,1)
     real*8 :: factor
+
     do i=1,9
         factor = A(10-i,10-i)
         b(10-i,1)=b(i,1)/factor
-        !j is the colomn count
-        do j=1,i
-            A(10-i,10-j)=A(10-i,10-j)/factor
-        end do
+        A(10-i,:)=A(10-i,:)/factor
         !j is the row count
         do j=i+1,9
-            b(10-j,1) = b(10-j,1)-b(10-i,1)*A(10-j,10-i)
-            A(10-j,:) = A(10-j,:)-A(10-i,:)*A(10-j,:)
+            factor = A(10-j,10-i)
+            b(10-j,1) = b(10-j,1)-b(10-i,1)*factor
+            A(10-j,:) = A(10-j,:)-A(10-i,:)*factor
         end do
     end do
 end subroutine SolveUpper
@@ -305,7 +323,7 @@ subroutine PrintA(A)
     implicit none
     real*8,intent(in) :: A(9,9) 
     integer :: i
-    print *,"=======A Matrix======="
+    print *,"========Matrix========"
     print "(9es16.3)",(A(i,:),i=1,9)
     print *,"======================"
 end subroutine PrintA
@@ -313,7 +331,7 @@ subroutine Printb(b)
     implicit none
     real*8,intent(in) :: b(9,1) 
     integer :: i
-    print *,"=======b Vector======="
+    print *,"========Vector========"
     print "(es16.3)",(b(i,:),i=1,9)
     print *,"======================="
 end subroutine Printb

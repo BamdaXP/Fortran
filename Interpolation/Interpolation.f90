@@ -41,6 +41,7 @@ subroutine Lagrange()
 
 	!Core calculation
 	do x=-5,5,0.1
+		print *,"-----"
 		print "(a,es10.3)","X value:",x
 		print "(a,es10.3)","Predicted value:",P(x,15)
 		print "(a,es10.3)","Function value:",f(x)
@@ -65,7 +66,7 @@ function l(x,i,N)
 end function
 
 function P(x,N)
-	real*8 :: p,x,x_sample,l
+	real*8 :: P,x,x_sample,l,f
 	integer :: N
 	P=0
 	do i=0,N
@@ -77,6 +78,52 @@ end function
 subroutine Newton()
 
 end subroutine
+
+
+function Newt(x,N)
+	real*8::F_DevDivN,w,x
+	integer :: N
+	Newt=0
+	do i=0,N
+		Newt=Newt+F_DevDivN(i,N)*w(i-1,x,N)
+	end do
+
+end function
+
+function F_DevDivN(nn,N)
+	real*8 :: F_DevDivN,x_sample,f,w_1
+	integer :: nn,N
+
+	F_DevDivN=0
+	do i=0,nn
+		F_DevDivN=F_DevDivN+f(x_sample(i,N))/w_1(i,x_sample(i,N),N)
+	end do
+
+end function
+function w(nn,x,N)
+	real*8 :: w,x,x_sample
+	integer :: N,nn
+	w=1
+	do i=0,nn
+		w=w*(x-x_sample(i,N))
+	end do
+end function
+
+function w_1(nn,x,N)
+	real*8 :: w_1,x,k,x_sample
+	integer :: N,nn
+	w_1=0
+	do i=0,nn
+		k=1
+		do j=0,nn
+			if (.not.i==k) then
+				k=k*(x-x_sample(j,N))
+			end if
+		end do
+		w_1=w_1+k
+	end do
+
+end function
 
 
 
