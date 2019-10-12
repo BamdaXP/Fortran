@@ -26,12 +26,12 @@ program Interpolation
 
 end program
 
-!Lagrange method and its functions
+!-------------------------------------------------Lagrange method and its functions-------------------------------------------
 subroutine Lagrange()
 	real*8 :: x,P,f
 
 	!Print texts
-	print *,"Through sampling, the function is interpolated."
+	print *,"Through sampling, the function is interpolated by Lagrange Interpolation."
 	print *,"The function is shape downbelow with the interval of 0.1 in range [-5,5]"
 
 	!Open files
@@ -49,7 +49,12 @@ subroutine Lagrange()
 		write(10,"(es10.3)")f(x)
 		write(11,"(es10.3)")P(x,15)
 		write(12,"(es10.3)")x
+
 	end do
+
+	close(10)
+	close(11)
+	close(12)
 end subroutine
 
 function l(x,i,N)
@@ -74,14 +79,40 @@ function P(x,N)
 	end do
 end function
 
-!Newton method and its functions
+!-------------------------------------------------------------Newton method and its functions--------------------------------
 subroutine Newton()
+	real*8 :: x,f,Newt
+
+	!Print texts
+	print *,"Through sampling, the function is interpolated by Newton Interpolation."
+	print *,"The function is shape downbelow with the interval of 0.1 in range [-5,5]"
+
+	!Open files
+	open(file="newton_y_real.txt",unit=10)
+	open(file="newton_y.txt",unit=11)
+	open(file="newton_x.txt",unit=12)
+
+	!Core calculation
+	do x=-5,5,0.1
+		print *,"-----"
+		print "(a,es10.3)","X value:",x
+		print "(a,es10.3)","Predicted value:",Newt(x,15)
+		print "(a,es10.3)","Function value:",f(x)
+		!Write data into files
+		write(10,"(es10.3)")f(x)
+		write(11,"(es10.3)")Newt(x,15)
+		write(12,"(es10.3)")x
+	end do
+
+	close(10)
+	close(11)
+	close(12)
 
 end subroutine
 
 
 function Newt(x,N)
-	real*8::F_DevDivN,w,x
+	real*8::F_DevDivN,w,x,Newt
 	integer :: N
 	Newt=0
 	do i=0,N
@@ -100,6 +131,7 @@ function F_DevDivN(nn,N)
 	end do
 
 end function
+
 function w(nn,x,N)
 	real*8 :: w,x,x_sample
 	integer :: N,nn
@@ -116,7 +148,7 @@ function w_1(nn,x,N)
 	do i=0,nn
 		k=1
 		do j=0,nn
-			if (.not.i==k) then
+			if (.not.i==j) then
 				k=k*(x-x_sample(j,N))
 			end if
 		end do
@@ -126,7 +158,7 @@ function w_1(nn,x,N)
 end function
 
 
-
+!-------------------------------------------------------------------------Basic Definition----------------------------
 !Function definition
 function f(x)
 	real*8 :: f
